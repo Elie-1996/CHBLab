@@ -6,23 +6,96 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from PIL import ImageOps
 import numpy as np
-from Utils import background_images, WIDTHS, HEIGHTS, subjects_dict, input_fixations_directory, input_pupil_directory
+from numpy import linalg as LA
+from shapely.geometry import Polygon, Point
+from Utils import background_images, WIDTHS, HEIGHTS, subjects_dict, input_fixations_directory, input_pupil_directory, strategy
 import cv2
+# 1000:
+# (428,   783,)
+# (135,   894,)
+# (322,   67,)
+# (133,   223,)
+# (585,   911,)
+# (213,   902,)
+# (831,   562,)
+# (210,   688,)
+# (836,   558,)
+# (204,   613,)
+# (518,   371,)
+# (187,   340,)
+# (526,   379,)
+# (326,   340,)
+# (523,   89,)
+# (453,   31,)
+# (456,   79,)
+# (231,   67,)
+# (412,   728,)
+# (128,   872,)
+#
+# Process finished with exit code -1
 
 figure_counter = 0  # keep 0 please
 HARD_CODED = True  # if False you can choose directly from image
-HARD_CODED_CLUSTERS = [[[[35, 997], [30, 805], [326, 814], [326, 998]],
-                        [[24, 775], [30, 469], [466, 467], [456, 769]],
-                       [[27, 411], [26, 12], [291, 4], [293, 413]],
-                        [[302, 410], [305, 5], [539, 7], [536, 405]]],
-                       [[[473, 1088], [474, 942], [623, 942], [618, 1079]],
-                        [[642, 910], [651, 712], [922, 676], [965, 857]],
-                        [[750, 456], [733, 192], [916, 179], [918, 445]],
-                        [[679, 455], [666, 225], [398, 218], [412, 448]],
-                        [[125, 304], [121, 108], [314, 93], [330, 262]]],
-                       [[[47, 929], [48, 509], [258, 509], [256, 930]],
-                                    [[253, 932], [256, 508], [466, 512], [467, 931]],
-                       [[586, 935], [586, 510], [995, 510], [995, 932]]], None]
+# HARD_CODED_CLUSTERS = [
+#     [  # Question 1
+#         [[0, 1012], [406, 1012], [406, 793], [0, 793]],
+#         [[0, 793], [499, 793], [499, 437], [0, 437]],
+#         [[0, 437], [635, 437], [635, 0], [0, 0]],
+#         [[635, 332], [1807, 332], [1807, 0], [635 ,0]]
+#     ],
+#    [  # Question 2
+#        [[0, 652], [107, 652], [107, 132], [0, 132]],  # stick
+#        [[107, 312], [313 ,312], [313, 132], [107, 132]],  # wheel
+#        [[0, 132], [450 ,132], [450, 0], [0, 0]],  # rope
+#        [[313, 225], [661, 225], [661, 132], [313, 132]],  # jaddafe
+#        [[313, 225], [567, 225], [567, 845], [313, 845]],  # morje7a
+#        [[567, 374], [661, 374], [661, 443], [567, 443]],  # ball
+#        [[661, 443], [1007, 443], [1007, 66], [661, 66]],  # cat
+#        [[593, 443], [923, 443], [923, 564], [593, 564]],  # dogs
+#        [[652, 564], [934, 564], [934, 884], [652, 884]],  # slug
+#        [[449, 884], [642, 884], [642, 1103], [449, 1104]],  # bird
+#        [[1264, 817], [2046, 817], [2046, 1154], [1264, 1154]],  # text
+#        [[1264, 817], [2046, 817], [2046, 0], [1264, 0]]  # draw
+#    ],
+#    [  # Question 3
+#        [[0, 481], [490, 481], [490, 896], [0, 896]],  # left pic
+#        [[0, 896], [495, 896], [495, 1014], [0, 1014]],  # left upper text
+#        [[495, 896], [1023, 896], [1023, 1014], [495, 1014]],  # right upper text
+#        [[1023, 896], [569, 896], [569, 481], [1023, 481]],  # right pic
+#        [[1023, 1014], [1023, 481], [1810, 481], [1810, 1014]]  # text
+#    ],
+#    [
+#        [[261, 708], [434, 708], [434, 511], [261, 511]],  # a1
+#        [[434, 708], [604, 708], [604, 511], [434, 511]],  # a2
+#        [[604, 708], [789, 708], [789, 511], [604, 511]],  # a3
+#        [[971, 802], [1494, 802], [1494, 479], [971, 479]],  # upper text
+#        [[707, 399], [1492, 399], [1494, 210], [707, 210]]  # lower text
+#    ]
+# ]
+
+
+HARD_CODED_CLUSTERS = [
+    [  # Question 1
+        [[0, 1013], [0, 0], [540, 0], [540, 426], [500, 426], [500, 800], [400, 800], [400, 1013]],  # image
+        [[465, 1013], [465, 840], [706, 840], [706, 1013]],  # legend
+        [[1809, 1013], [1809, 324], [770, 324], [770,  554], [1060, 697], [1060, 815], [721, 815], [721,  1013]]  # text
+    ],
+    [  # Question 2
+        [[0, 1155], [0, 0], [1266, 0], [1266, 1155]],  # image
+        [[1266, 1155], [1266, 847], [2045, 847], [2045, 1155]]  # text
+    ],
+    [  # Question 3
+        [[0, 1014], [1033, 1014],[1033, 470],[0, 470]],  # image
+        [[1810, 1014], [1033, 1014], [1033, 512], [1810, 512]]  # text
+    ],
+    [  # Question 4
+        [[0, 847], [0, 510], [800, 510], [800, 847]],  # question
+        [[1518, 212], [650, 212], [649, 428], [800, 428], [800, 848], [1518, 848]]  # image
+    ]
+]
+# OFFSET_X, OFFSET_Y = -250, 100
+OFFSET_X, OFFSET_Y = 0, 0
+
 DRAW_PUPIL_MEAN_HISTOGRAM = False
 CREATE_CLUSTERS = False  # when true - clusters will be estimated from the data. when False, clusters will be loaded.
 USE_KNN = False  # when true - points will get labels using K Nearest neighbors
@@ -31,7 +104,21 @@ NEAREST_NEIGHBOR_K = 9
 CLUSTER_RADIUS = [-1, -1, -1,
                   -1]  # any non-negative number means this will use the fixed value given. If a negative value, then an automatic radius (bandwidth) estimation is performed
 
-NUM_OF_AOI = [4, 5, 3, 3]
+# NUM_OF_AOI = [4, 12, 5, 5]
+NUM_OF_AOI = [3, 2, 2, 2]
+ONLY_POLYGON_POINTS_RELEVANT = True
+
+def drawHardCodedCluster(img, question_idx, polygons):
+    for polygon in polygons:
+        alpha = 0.5  # that's your transparency factor
+        int_coords = lambda x: np.array(x).round().astype(np.int32)
+        exterior = [int_coords(polygon.exterior.coords)]
+        overlay = img.copy()
+        cv2.fillPoly(overlay, exterior, color=(255, 255, 0))
+        cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0, img)
+        cv2.imshow("Polygon", img)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
 
 class Rect:
@@ -181,9 +268,11 @@ def build_cluster_jump_array_within_same_cluster(switch_mat_list, xy_points_amou
     global figure_counter
     from matrixHeatMap import heatmapMatrix, annotate_heatmapMatrix
     total_jumps_within_each_area = [0 for _ in range(switch_mat_list[0].shape[0])]
+    old_stuff = []
     for subject_idx in range(len(xy_points_amount_per_subject)):
         for i in range(switch_mat_list[subject_idx].shape[0]):
             total_jumps_within_each_area[i] += (switch_mat_list[subject_idx][i][i])
+            old_stuff.append(switch_mat_list[subject_idx][i][i])
             switch_mat_list[subject_idx][i][i] = 0
         plt.figure(figure_counter + 1)
         figure_counter += 1
@@ -191,7 +280,13 @@ def build_cluster_jump_array_within_same_cluster(switch_mat_list, xy_points_amou
         im, cbar = heatmapMatrix(switch_mat_list[subject_idx], np.arange(n_clusters_), np.arange(n_clusters_),
                                  cmap="YlGn", cbarlabel="Frequency")
         plt.title(f"Question {question_idx + 1} - Subject {subjects[subject_idx]}")
-        texts = annotate_heatmapMatrix(im)
+
+        texts = annotate_heatmapMatrix(im, old_stuff)
+        MySubject = '1000'
+        MyTime = 'Full'
+        # MyTime = 'Min'
+        # MyTime = 'Strategy' + str(strategy)
+        plt.savefig("Question" + str(question_idx + 1) + "_Subject" + MySubject + "_" + MyTime + "_TransitionMatrix")
 
     return switch_mat_list, total_jumps_within_each_area
 
@@ -283,6 +378,39 @@ def click_event(event, x, y, flags, params):
         AOI.append([x, HEIGHT - y])
 
 
+def vis_covariance(XY_ONLY, question_idx):
+
+    max_x = WIDTHS[question_idx]
+    max_y = HEIGHTS[question_idx]
+
+    cov_x = np.array([x for (x, y) in XY_ONLY])
+    cov_x = cov_x / max_x
+
+    cov_y = np.array([y for (x, y) in XY_ONLY])
+    cov_y = cov_y / max_y
+
+    cov = np.array([cov_x, cov_y])
+    cov_matrix = np.cov(cov, bias=False)
+    print(cov_matrix)
+    eigenvalues, eigenvectors = LA.eig(cov_matrix)
+    np.set_printoptions(precision=5)
+    print("eigenvalues:\n" + str(eigenvalues))
+    # print("eigenvectors:\n" + str(eigenvectors))
+    print("This was Question " + str(question_idx + 1))
+
+
+def keep_only_points_in_polygons(XY_ONLY, polygons, question_idx, change_XY):
+    if not change_XY:
+        return XY_ONLY
+    NEW_XY_ONLY = []
+    for coordinate in XY_ONLY:
+        point = Point(coordinate[0], coordinate[1])  # COME BACK HERE ELIE
+        for i in range(NUM_OF_AOI[question_idx]):
+            if polygons[i].contains(point):
+                NEW_XY_ONLY.append([coordinate[0], coordinate[1]])
+    return np.array(NEW_XY_ONLY)
+
+
 def run_analysis():
     global figure_counter
     for question_idx in range(4):
@@ -296,12 +424,12 @@ def run_analysis():
             continue
         XY_TIME = np.array(data, dtype=object)
         print(XY_TIME.shape)
-        XY_ONLY = np.array([[x, y] for t, (x, y) in XY_TIME])
+        XY_ONLY = np.array([[x + OFFSET_X, y + OFFSET_Y] for t, (x, y) in XY_TIME])
         print(XY_ONLY.shape)
 
         # choose bandwidth
-        bandwidth = choose_bandwidth(XY_ONLY, question_idx)
-
+        # bandwidth = choose_bandwidth(XY_ONLY, question_idx)
+        bandwidth = 150.0
         # create clusters and extract cluster data
         if CREATE_CLUSTERS:
             clustering = MeanShift(bandwidth=bandwidth, max_iter=300, n_jobs=2, bin_seeding=True).fit(XY_ONLY)
@@ -333,7 +461,6 @@ def run_analysis():
 
         else:
             global AOI, HEIGHT
-            from shapely.geometry import Polygon, Point
             img = cv2.imread(os.path.join('Heatmap', background_images[question_idx]), 1)
             HEIGHT = img.shape[0]
             CLUSTERS = []
@@ -344,10 +471,16 @@ def run_analysis():
             if HARD_CODED:
                 #   Convert AOI to Polygon
                 for i in range(NUM_OF_AOI[question_idx]):
-                    polygons.append(Polygon(HARD_CODED_CLUSTERS[question_idx][i]))
+                    xy = HARD_CODED_CLUSTERS[question_idx][i]
+                    for indexN in range(len(xy)):
+                        xy[indexN][1] = HEIGHTS[question_idx] - xy[indexN][1]
+                        # xy[indexN][1] = HEIGHTS[question_idx] - xy[indexN][1]  # comment for good images of polygons
+                    polygons.append(Polygon(xy))
+                # drawHardCodedCluster(img, question_idx, polygons)
 
             else:
                 for i in range(NUM_OF_AOI[question_idx]):
+                    print("i=" + str(i))
                     AOI = []
                     cv2.imshow('image', img)
                     cv2.setMouseCallback('image', click_event)
@@ -359,9 +492,10 @@ def run_analysis():
                 for i in range(NUM_OF_AOI[question_idx]):
                     polygons.append(Polygon(CLUSTERS[i]))
 
+            XY_ONLY = keep_only_points_in_polygons(XY_ONLY, polygons, question_idx, ONLY_POLYGON_POINTS_RELEVANT)
             #   Matching labels to each point
             for coordinate in XY_ONLY:
-                point = Point(coordinate[0], coordinate[1])
+                point = Point(coordinate[0], coordinate[1])  # COME BACK HERE ELIE
                 for i in range(NUM_OF_AOI[question_idx]):
                     if polygons[i].contains(point):
                         labels.append(i)
@@ -370,7 +504,6 @@ def run_analysis():
                         labels.append(NUM_OF_AOI[question_idx])
 
         print(CGREEN + "Finish clustering" + CEND)
-
         print(xy_points_amount_per_subject)
         if DRAW_PUPIL_MEAN_HISTOGRAM:
             diameters_in_all_clusters = reorganize_pupil_data_per_area(diameter_data, XY_TIME, labels, n_clusters_)
@@ -384,7 +517,7 @@ def run_analysis():
         total_number_of_fixations, fixation_variance, angles_mean, angles_hist, angle_degrees_strings = get_fixation_totalamount_variance_angles(
             XY_ONLY)
         mean_pupil_size, variance_pupil_size = get_pupil_mean_variance(diameter_data)
-        stay_duration_mean_per_cluster = get_duration_per_cluster(XY_ONLY, durations, labels, n_clusters_)
+        # stay_duration_mean_per_cluster = get_duration_per_cluster(XY_ONLY, durations, labels, n_clusters_)
 
         # Plot result
         import matplotlib.patches as mpatches
@@ -401,8 +534,8 @@ def run_analysis():
         legend = []
         # colors = cycle('bgrcmykwbgrcmykbgrcmykbgrcmyk')
         colors = cycle(
-            ['#CD6155', '#AF7AC5', '#2980B9', '#16A085', '#2ECC71', '#F1C40F', '#F39C12', '#ECF0F1', '#BDC3C7',
-             '#95A5A6', '#707B7C', '#17202A'])
+            ['#dfdac4', '#36371d', '#00baff', '#ac7b7d', '#7c31f2', '#00e5a3', '#a42070', '#ff1095', '#6303d2',
+             '#f3dcf5', '#156c11', '#eaf27c', '#b13034', '#c86409', '#188fa7', '#785589'])
         # time_per_cluster = []
         for k, col in zip(range(n_clusters_), colors):
             my_members = [i for i, x in enumerate(labels) if x == k]
@@ -410,6 +543,7 @@ def run_analysis():
             # time_per_cluster.append(time_for_each_visit_in_current_cluster)
             hist.append(len(my_members))
             hist_color.append(col)
+            XY_ONLY = np.array([[x, y] for (x, y) in XY_ONLY])
             plt.scatter(XY_ONLY[my_members, 0], XY_ONLY[my_members, 1], c=col, marker='.')
             patch = mpatches.Patch(color=col, label=k)
             legend.append(patch)
@@ -476,14 +610,15 @@ def run_analysis():
         plt.xticks(y_pos, labels=angle_degrees_strings)
 
         # draw stay duration mean per cluster
-        plt.figure(figure_counter + 1)
-        figure_counter += 1
-        plt.title(f"Question {question_idx + 1} - Duration mean per cluster")
-        plt.xlabel("Cluster")
-        plt.ylabel("Mean Duration Stay (m/secs)")
-        y_pos = np.arange(len(stay_duration_mean_per_cluster))
-        plt.bar(y_pos, stay_duration_mean_per_cluster, color=hist_color)
-        plt.xticks(y_pos, np.arange(len(stay_duration_mean_per_cluster)))
+        # uncommnet later
+        # plt.figure(figure_counter + 1)
+        # figure_counter += 1
+        # plt.title(f"Question {question_idx + 1} - Duration mean per cluster")
+        # plt.xlabel("Cluster")
+        # plt.ylabel("Mean Duration Stay (m/secs)")
+        # y_pos = np.arange(len(stay_duration_mean_per_cluster))
+        # plt.bar(y_pos, stay_duration_mean_per_cluster, color=hist_color)
+        # plt.xticks(y_pos, np.arange(len(stay_duration_mean_per_cluster)))
 
         # printing numbers:
         print("Length of Sequence: " + str(int(total_duration)) + " (m/secs)")
@@ -492,8 +627,9 @@ def run_analysis():
         print("Mean Pupil: " + str(mean_pupil_size))
         print("Variance Pupil: " + str(variance_pupil_size))
         print("Angles Mean: " + str(angles_mean))
-        print([int(total_duration), int(total_number_of_fixations), int(fixation_variance), int(mean_pupil_size),
-               int(variance_pupil_size), int(angles_mean)])
+        vis_covariance(XY_ONLY, question_idx)
+        # print([int(total_duration), int(total_number_of_fixations), int(fixation_variance), int(mean_pupil_size),
+        #        int(variance_pupil_size), int(angles_mean)])
         print(CRED + "Please Close all open windows to continue to next question." + CEND)
         plt.show()
 

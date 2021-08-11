@@ -5,15 +5,22 @@ from heatmappy import Heatmapper
 from heatmappy.video import VideoHeatmapper
 import pandas as pd
 import cv2
-from Utils import background_images, WIDTHS, HEIGHTS, subjects_dict, input_fixations_directory
+from Utils import background_images, WIDTHS, HEIGHTS, subjects_dict, input_fixations_directory, strategy
 
 
-QUESTION_IDX = 0
+QUESTION_IDX = 2
+# extra_text = 'min_'
+extra_text = 'whole_'
+# extra_text = 'strategy' + str(strategy) + '_'  # don't forget to add strategy index/tag!
+# extra_text = 'IGNORE_THIS_RESULT' + str(strategy) + '_'
+SUBJECT_KEY = '001'  # take the key from subjects_dict (imported above :) )
+NAMEOFFILE = SUBJECT_KEY + '_Question' + str(QUESTION_IDX + 1) + '_' + extra_text +'.png'
 HM_INTERVAL = 1
 filename = background_images[QUESTION_IDX]
 CRED = '\33[32m'
 CEND = '\033[0m'
-
+# OFFSET_X, OFFSET_Y = -250, -46
+OFFSET_X, OFFSET_Y = 0, 0
 
 def produce_interval_heatmap():
     ##  For image
@@ -45,14 +52,17 @@ def produce_interval_heatmap():
                 while True:
                     if idx < num_rows and df['start_timestamp'].iloc[idx] - start_time <= interval:
                         if df['on_surf'].iloc[idx] and current_subject_time[0] <= df['start_timestamp'].iloc[idx] <= current_subject_time[1]:
-                            current_points.append((df['norm_pos_x'].iloc[idx] * size[0], (1 - df['norm_pos_y'].iloc[idx])*size[1]))
+                            finalx, finaly = df['norm_pos_x'].iloc[idx] * size[0] + OFFSET_X, (1 - df['norm_pos_y'].iloc[idx])*size[1] + OFFSET_Y
+                            if finalx >= 0 and finalx <= size[0] and finaly >= 0 and finaly <= size[1]:
+                                current_points.append((df['norm_pos_x'].iloc[idx] * size[0] + OFFSET_X, (1 - df['norm_pos_y'].iloc[idx])*size[1] + OFFSET_Y))
                         idx += 1
                     else:
                         break
                 img_list.append(heatmapper.heatmap_on_img(current_points, img))
             idx += 1
 
-        img_list[0].save('Question_1_heatmap_4.png')
+        print("Saving")
+        img_list[0].save(NAMEOFFILE)
         # Uncomment for video
         # out = cv2.VideoWriter(f'Interval-HeatMap-Question-{QUESTION_IDX}-Subject-'+subject.split('_')[0]+'.mp4', cv2.VideoWriter_fourcc(*'mp4v'), 1, size)
         #

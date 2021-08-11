@@ -3,15 +3,126 @@ import os
 from Visualization import AOI
 from DataLib.GetData import Data
 
+strategy = 3
+
+
+def getTime(minutes, seconds, minutes2, seconds2):
+    return (minutes*60 + seconds, minutes2*60 + seconds2)
+
+
+def getNextMin(minutes, seconds):
+    return (minutes*60 + seconds, (minutes+1)*60 + seconds)
+
+
+def getStrategy(subject, qst_idx, strategyidx):
+    error = None
+    if subject == '1000':
+        if qst_idx == 1:
+            if strategyidx == 1:
+                return getTime(0, 55, 1, 53)
+            elif strategyidx == 2:
+                return getTime(1, 53, 2, 41)
+            elif strategyidx == 3:
+                return getTime(2, 41, 2, 55)
+            else:
+                return error
+        elif qst_idx == 2:
+                return error
+        elif qst_idx == 3:
+            if strategyidx == 1:
+                return getTime(5, 15, 5, 30)
+            elif strategyidx == 2:
+                return getTime(5, 30, 6, 24)
+            elif strategyidx == 3:
+                return getTime(6, 24, 6, 55)
+            else:
+                return error
+        elif qst_idx == 4:
+            if strategyidx == 1:
+                return getTime(7, 11, 7, 29)
+            elif strategyidx == 2:
+                return getTime(7, 29, 7, 58)
+            elif strategyidx == 3:
+                return getTime(7, 58, 8, 11)
+            else:
+                return error
+        else:
+            return error
+    elif subject == '009':
+        if qst_idx == 1:
+            if strategyidx == 1:
+                return getTime(1, 17, 1, 44)
+            elif strategyidx == 2:
+                return getTime(1, 44, 2, 45)
+            elif strategyidx == 3:
+                return getTime(2, 45, 5, 32)
+            else:
+                return error
+        elif qst_idx == 2:
+            return error
+        elif qst_idx == 3:
+            if strategyidx == 1:
+                return getTime(9, 22, 9, 41)
+            elif strategyidx == 2:
+                return getTime(9, 41, 10, 26)
+            elif strategyidx == 3:
+                return getTime(10, 26, 10, 54)
+            elif strategyidx == 4:
+                return getTime(10, 54, 11, 59)
+            else:
+                return error
+        elif qst_idx == 4:
+            if strategyidx == 1:
+                return getTime(12, 11, 13, 24)
+            elif strategyidx == 2:
+                return getTime(13, 24, 15, 55)
+            elif strategyidx ==3:
+                return getTime(15, 55, 16, 40)
+            else:
+                return error
+        else:
+            return error
+    elif subject == '001':
+        if qst_idx == 1:
+            if strategyidx == 1:
+                return getTime(5, 36, 7, 57)
+            elif strategyidx == 2:
+                return getTime(7, 57, 11, 12)
+            else:
+                return error
+        elif qst_idx == 2:
+            return error
+        elif qst_idx == 3:
+            return error
+        elif qst_idx == 4:
+            return error
+        else:
+            return error
+    elif subject == '007':
+        if qst_idx == 1:
+            if strategyidx == 1:
+                return getTime(0, 59, 2, 5)
+            elif strategyidx == 2:
+                return getTime(2, 5, 5, 7)
+            else:
+                return error
+        elif qst_idx == 2:
+            return error
+        elif qst_idx == 3:
+            return error
+        elif qst_idx == 4:
+            return error
+        else:
+            return error
+
+    return error
+
 input_fixations_directory = os.path.join('Subjects', 'fixations')  # CSV files
 input_blinks_directory = os.path.join('Subjects', 'blinks')  # CSV files
 input_pupil_directory = os.path.join('Subjects', 'pupil')  # CSV files
 
-background_images = ['Question1.jpg', 'Question2.jpg', 'Question3.jpg', None]
+background_images = ['Question1.jpg', 'Question2.jpg', 'Question3.jpg', 'Question4.jpg']
 
-
-WIDTHS = [1808, 2046, 1810, None]  # The width of image for each question (here 2046 width for Question 2)
-HEIGHTS = [1013, 1155, 1014, None]  # The height of image for each question (here 1014 width for Question 3)
 subjects_dict = {
     # 'None' value means we skip the analysis of that question, and tuple (start time, end time) means we partake
     # these specific times (in seconds) to include in question
@@ -21,18 +132,34 @@ subjects_dict = {
     # Note: If you would like to exclude a subject entirely -
     # simply fill them with 'None' values, example to exclude subject 9:
     # '009': [None, None, None, None]
-    # ##########################################################33
-    '001': [None, None, None, None],
+    # ##########################################################
+    # '001': [getTime(5, 36, 11, 12), getTime(11, 32, 13, 8), getTime(13, 20, 16, 36), getTime(17, 2, 18, 34)],
+    '001': [None, None, getTime(13, 20, 16, 36), getTime(17, 2, 18, 34)],
+    # '001': [getNextMin(5, 36), getNextMin(11, 32), getNextMin(13, 20), getNextMin(17, 2)],
+    # '001': [getStrategy('001', 1, strategy), getStrategy('001', 2, strategy), getStrategy('001', 3, strategy), getStrategy('001', 4, strategy)],
+    # '001':  [None, None, None, None],
     '002':  [None, None, None, None],
     '003':  [None, None, None, None],
     '004':  [None, None, None, None],
     '005':  [None, None, None, None],
     '006':  [None, None, None, None],
     '007':  [None, None, None, None],
-    '008':  [(428, 476), None, None, None],
+    # '007':  [getNextMin(0, 59), getNextMin(6, 1), getNextMin(7, 48), getNextMin(10, 33)],
+    # '007':  [getTime(0, 59, 5, 50), getTime(6, 1, 7, 36), getTime(7, 48, 10, 23), getTime(10, 33, 13, 44)],
+    # '007': [getStrategy('007', 1, strategy), getStrategy('007', 2, strategy), getStrategy('007', 3, strategy), getStrategy('007', 4, strategy)],
+    '008':  [None, None, None, None],
     '009':  [None, None, None, None],
+    # '009':  [getNextMin(0, 47), getNextMin(7, 36), getNextMin(9, 22), getNextMin(12, 11)],
+    # '009':  [getTime(1, 17, 6, 51), getTime(7, 36, 9, 12), getTime(9, 22, 11, 59), getTime(12, 11, 16, 40)],
+    # '009':  [getStrategy('009', 1, strategy), getStrategy('009', 2, strategy), getStrategy('009', 3, strategy), getStrategy('009', 4, strategy)],
+    # '1000': [getTime(0, 55, 2, 55), getTime(3, 22, 5, 2), getTime(5, 16, 6, 56), getTime(7, 11, 8, 11)],
+    # '1000': [getNextMin(0, 55), getNextMin(3, 22), getNextMin(5, 16), getNextMin(7, 11)],
+    # '1000': [getStrategy('1000', 1, strategy), getStrategy('1000', 2, strategy), getStrategy('1000', 3, strategy), getStrategy('1000', 4, strategy)],
     '1000': [None, None, None, None],
 }
+
+WIDTHS = [1808, 2046, 1810, 1518]  # The width of image for each question (here 2046 width for Question 2)
+HEIGHTS = [1013, 1155, 1014, 847]  # The height of image for each question (here 1014 width for Question 3)
 
 
 def get_random_array_with_range(shape, min_range, max_range):

@@ -64,7 +64,7 @@ def heatmapMatrix(data, row_labels, col_labels, ax=None,
     return im, cbar
 
 
-def annotate_heatmapMatrix(im, data=None, valfmt="{x:.2f}",
+def annotate_heatmapMatrix(im, old_stuff, data=None, valfmt="{x:.2f}",
                      textcolors=["black", "white"],
                      threshold=None, **textkw):
     """
@@ -117,7 +117,10 @@ def annotate_heatmapMatrix(im, data=None, valfmt="{x:.2f}",
     for i in range(data.shape[0]):
         for j in range(data.shape[1]):
             kw.update(color=textcolors[int(im.norm(data[i, j]) > threshold)])
-            text = im.axes.text(j, i, valfmt(data[i, j], None), **kw)
+            if i != j:
+                text = im.axes.text(j, i, valfmt(data[i, j], None), **kw)
+            else:
+                text = im.axes.text(j, i, valfmt(old_stuff[i], None), **kw)
             texts.append(text)
 
     return texts
